@@ -186,7 +186,9 @@ switch ($action) {
             exit;
         }
 
-        $sql = "SELECT nc.*, e_order.full_name as order_taker_name, e_money.full_name as money_with_name
+        $sql = "SELECT nc.*, e_order.full_name as order_taker_name, e_money.full_name as money_with_name,
+                (SELECT brand_name FROM onu_assignments WHERE customer_id = nc.customer_id_code ORDER BY id DESC LIMIT 1) as onu_brand,
+                (SELECT mac_address FROM onu_assignments WHERE customer_id = nc.customer_id_code ORDER BY id DESC LIMIT 1) as onu_mac
                 FROM new_connections nc
                 LEFT JOIN employees e_order ON nc.order_taker_id = e_order.id
                 LEFT JOIN employees e_money ON nc.money_with_id = e_money.id

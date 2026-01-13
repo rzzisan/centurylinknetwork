@@ -57,7 +57,9 @@ if ($is_all) {
 }
 
 // Fetch connection data
-$sql = "SELECT nc.*, e_order.full_name as order_taker_name, e_money.full_name as money_with_name
+$sql = "SELECT nc.*, e_order.full_name as order_taker_name, e_money.full_name as money_with_name,
+        (SELECT brand_name FROM onu_assignments WHERE customer_id = nc.customer_id_code ORDER BY id DESC LIMIT 1) as onu_brand,
+        (SELECT mac_address FROM onu_assignments WHERE customer_id = nc.customer_id_code ORDER BY id DESC LIMIT 1) as onu_mac
         FROM new_connections nc
         LEFT JOIN employees e_order ON nc.order_taker_id = e_order.id
         LEFT JOIN employees e_money ON nc.money_with_id = e_money.id
@@ -141,7 +143,16 @@ $connections = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <td><strong><?php echo htmlspecialchars($conn['customer_name']); ?></strong><br><small><?php echo htmlspecialchars($conn['address']); ?></small></td>
                             <td><?php echo htmlspecialchars($conn['mobile_number']); ?></td>
                             <td><?php echo htmlspecialchars($conn['connection_type']); ?></td>
-                            <td><?php echo htmlspecialchars(str_replace(',', ', ', $conn['materials_used'])); ?></td>
+                            <td>
+                                <?php echo htmlspecialchars(str_replace(',', ', ', $conn['materials_used'])); ?>
+                                <?php if(!empty($conn['onu_brand']) || !empty($conn['onu_mac'])): ?>
+                                    <br><small class="text-muted">
+                                        <?php echo htmlspecialchars($conn['onu_brand'] ?? ''); ?>
+                                        <?php echo (!empty($conn['onu_brand']) && !empty($conn['onu_mac'])) ? '-' : ''; ?>
+                                        <?php echo htmlspecialchars($conn['onu_mac'] ?? ''); ?>
+                                    </small>
+                                <?php endif; ?>
+                            </td>
                             <td><?php echo number_format($conn['total_price']); ?></td>
                             <td><?php echo number_format($conn['deposit_amount']); ?></td>
                             <td class="<?php echo ($conn['due_amount'] > 0) ? 'text-danger fw-bold' : ''; ?>"><?php echo number_format($conn['due_amount']); ?></td>

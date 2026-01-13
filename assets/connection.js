@@ -268,6 +268,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (data.success && data.data.length > 0) {
                     tableBody.innerHTML = '';
                     data.data.forEach((conn, index) => {
+                        let materialsContent = conn.materials_used;
+                        if (conn.onu_brand || conn.onu_mac) {
+                            materialsContent += `<br><small class="text-muted">
+                                ${conn.onu_brand || ''}
+                                ${(conn.onu_brand && conn.onu_mac) ? '-' : ''}
+                                ${conn.onu_mac || ''}
+                            </small>`;
+                        }
+
                         const row = `<tr>
                             <td>${index + 1}</td>
                             <td>${conn.customer_id_code}</td>
@@ -275,7 +284,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             <td><strong>${conn.customer_name}</strong><br><small>${conn.address}</small></td>
                             <td>${conn.mobile_number}</td>
                             <td>${conn.connection_type}</td>
-                            <td>${conn.materials_used}</td>
+                            <td>${materialsContent}</td>
                             <td>${conn.total_price}</td>
                             <td>${conn.deposit_amount}</td>
                             <td class="${conn.due_amount > 0 ? 'text-danger fw-bold' : ''}">${conn.due_amount}</td>
