@@ -155,3 +155,14 @@ body {
         display: none; /* Hide welcome text on small screens */
     }
 }
+
+/* Quick Action Transitions */
+.transition-hover {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    text-decoration: none;
+}
+
+.transition-hover:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+}

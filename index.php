@@ -26,6 +26,35 @@ $other_products_stock = $pdo->query("SELECT name, current_stock FROM products OR
 ?>
 
 <div class="container-fluid">
+    <!-- Quick Actions -->
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom-0 pt-4">
+            <h4 class="mb-0 fw-bold text-dark"><i class="bi bi-lightning-charge-fill text-warning"></i> Quick Actions</h4>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-6 col-md-4 col-lg-3">
+                    <a href="new_connection.php" class="btn btn-light w-100 p-3 text-center border shadow-sm transition-hover">
+                        <i class="bi bi-person-plus-fill fs-3 d-block mb-2 text-primary"></i>
+                        <span class="fw-semibold">New Connection</span>
+                    </a>
+                </div>
+                <div class="col-6 col-md-4 col-lg-3">
+                    <a href="attendance_entry.php" class="btn btn-light w-100 p-3 text-center border shadow-sm transition-hover">
+                        <i class="bi bi-calendar-check-fill fs-3 d-block mb-2 text-success"></i>
+                        <span class="fw-semibold">Attendance</span>
+                    </a>
+                </div>
+                <div class="col-6 col-md-4 col-lg-3">
+                    <a href="other_stock.php" class="btn btn-light w-100 p-3 text-center border shadow-sm transition-hover">
+                        <i class="bi bi-box-arrow-up fs-3 d-block mb-2 text-warning"></i>
+                        <span class="fw-semibold">Stock Out</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-header">
             <h3><i class="bi bi-graph-up"></i> Present Stock at a glanc </h3>
