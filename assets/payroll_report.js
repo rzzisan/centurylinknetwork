@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const api_url = '../api/attendance_api.php';
+    const api_url = 'api/attendance_api.php';
 
     // --- Payroll Report Form ---
     const reportForm = document.getElementById('payroll-report-form');
