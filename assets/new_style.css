@@ -1,0 +1,157 @@
+/* General Body Styles */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: #f4f7f6;
+    margin: 0;
+    display: flex;
+    min-height: 100vh;
+    flex-direction: column;
+}
+
+.main-wrapper {
+    display: flex;
+    flex: 1;
+    overflow-x: hidden; /* Prevent horizontal scroll */
+}
+
+/* Sidebar Styles */
+.sidebar {
+    width: 250px;
+    background-color: #2c3e50;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    padding-top: 20px;
+    transition: margin-left 0.3s ease-in-out;
+    flex-shrink: 0;
+}
+
+.sidebar-header {
+    padding: 0 20px 20px 20px;
+    text-align: center;
+    border-bottom: 1px solid #34495e;
+}
+
+.sidebar-header h3 {
+    margin: 0;
+    font-size: 24px;
+    color: #ecf0f1;
+}
+
+.sidebar-menu {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0;
+    flex-grow: 1;
+}
+
+.sidebar-menu a {
+    display: block;
+    color: #ecf0f1;
+    text-decoration: none;
+    padding: 15px 20px;
+    transition: background-color 0.3s, padding-left 0.3s;
+}
+
+.sidebar-menu a:hover,
+.sidebar-menu a.active {
+    background-color: #34495e;
+    padding-left: 25px;
+}
+
+.sidebar-menu i {
+    margin-right: 12px;
+    width: 20px;
+    text-align: center;
+}
+
+/* Content Area */
+.content-wrapper {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    transition: width 0.3s;
+}
+
+/* Header Styles */
+.header {
+    background-color: #ffffff;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between; /* Adjusted for toggle button */
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-toggle {
+    font-size: 24px;
+    cursor: pointer;
+    display: none; /* Hidden on desktop */
+    color: #2c3e50;
+}
+
+.user-info {
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+}
+
+.user-info .btn-danger {
+    margin-left: 15px;
+}
+
+/* Main Content Styles */
+.main-content {
+    flex: 1;
+    padding: 25px;
+    overflow-y: auto;
+}
+
+/* Footer Styles */
+.footer {
+    background-color: #ffffff;
+    padding: 15px 30px;
+    text-align: center;
+    color: #6c757d;
+    border-top: 1px solid #e0e0e0;
+}
+
+/* --- Mobile Responsive Styles --- */
+@media (max-width: 768px) {
+    .main-wrapper {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100%;
+        z-index: 1050; /* Higher than Bootstrap's modal backdrop */
+        margin-left: -250px; /* Hidden by default */
+    }
+
+    .sidebar.active {
+        margin-left: 0; /* Shown when active */
+    }
+
+    .sidebar-toggle {
+        display: block; /* Visible on mobile */
+    }
+
+    .content-wrapper {
+        width: 100%;
+    }
+
+    .main-content {
+        padding: 15px;
+    }
+
+    .header {
+        padding: 10px 15px;
+    }
+    
+    .user-info span {
+        display: none; /* Hide welcome text on small screens */
+    }
+}
