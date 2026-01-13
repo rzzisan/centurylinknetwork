@@ -8,6 +8,7 @@ include 'sidebar.php';
 
 // Fetch data for dropdowns
 $employees = $pdo->query("SELECT id, full_name FROM employees ORDER BY full_name ASC")->fetchAll(PDO::FETCH_ASSOC);
+$brands = $pdo->query("SELECT name FROM brands ORDER BY name ASC")->fetchAll(PDO::FETCH_COLUMN);
 
 // Filter Logic
 $params = [];
@@ -198,6 +199,36 @@ $connections = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <input type="checkbox" class="form-check-input" name="materials[]" value="অনু-রাউটার" id="mat_router"> <label for="mat_router">অনু-রাউটার</label>
                             </div>
                         </div>
+
+                        <!-- ONU Assignment Section -->
+                        <div class="col-md-12 border p-3 rounded bg-light" id="onu_assignment_section" style="display:none;">
+                            <h6>ONU বরাদ্দ বিবরণ (ঐচ্ছিক)</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">ONU ব্র্যান্ড</label>
+                                    <select name="onu_brand" id="onu_brand" class="form-select">
+                                        <option value="">ব্র্যান্ড নির্বাচন করুন</option>
+                                        <?php foreach($brands as $brand) echo "<option value='".htmlspecialchars($brand)."'>".htmlspecialchars($brand)."</option>"; ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">MAC Address</label>
+                                    <input type="text" name="onu_mac" id="onu_mac" class="form-control" placeholder="MAC Address">
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label">বরাদ্দ গ্রহীতা (Allocator)</label>
+                                    <div class="border p-2 rounded bg-white" style="max-height: 100px; overflow-y: auto;">
+                                        <?php foreach($employees as $e): ?>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="onu_assigned_to[]" value="<?php echo htmlspecialchars($e['full_name']); ?>" id="onu_emp_<?php echo $e['id']; ?>">
+                                            <label class="form-check-label" for="onu_emp_<?php echo $e['id']; ?>"><?php echo htmlspecialchars($e['full_name']); ?></label>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="col-md-4"><label class="form-label">টাকা</label><input type="number" name="total_price" id="total_price" class="form-control" required></div>
                         <div class="col-md-4"><label class="form-label">জমা</label><input type="number" name="deposit_amount" id="deposit_amount" class="form-control" required></div>
                         <div class="col-md-4"><label class="form-label">বাকি</label><input type="text" id="due_amount_display" class="form-control" disabled></div>

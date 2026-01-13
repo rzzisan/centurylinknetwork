@@ -7,6 +7,8 @@ define('DB_USER', 'onu_user');
 define('DB_PASS', 'Z@reen54221');
 define('DB_NAME', 'onu_management_db');
 
+date_default_timezone_set('Asia/Dhaka');
+
 if (session_status() == PHP_SESSION_NONE) { session_start(); }
 
 try {

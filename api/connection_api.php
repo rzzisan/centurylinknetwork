@@ -4,6 +4,8 @@
 // Description: Handles all AJAX requests for New Connection management.
 // =================================================================
 
+require_once '../config.php';
+
 if (session_status() == PHP_SESSION_NONE) { session_start(); }
 
 if (!is_logged_in()) {
@@ -39,33 +41,66 @@ switch ($action) {
         $mobile_number = trim($_POST['mobile_number']);
         $address = trim($_POST['address']);
         $connection_type = trim($_POST['connection_type']);
-        $materials_used = trim($_POST['materials_used']);
+        $materials = isset($_POST['materials']) ? $_POST['materials'] : [];
+        $materials_used = implode(',', $materials); // Array to comma-separated string
         $total_price = filter_input(INPUT_POST, 'total_price', FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE) ?? 0;
         $deposit_amount = filter_input(INPUT_POST, 'deposit_amount', FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE) ?? 0;
         $order_taker_id = filter_input(INPUT_POST, 'order_taker_id', FILTER_VALIDATE_INT);
         $money_with_id = filter_input(INPUT_POST, 'money_with_id', FILTER_VALIDATE_INT);
         $due_amount = $total_price - $deposit_amount;
 
+        // ONU Data
+        $onu_brand = trim($_POST['onu_brand'] ?? '');
+        $onu_mac = trim($_POST['onu_mac'] ?? '');
+        $onu_assigned_to = isset($_POST['onu_assigned_to']) ? implode(', ', $_POST['onu_assigned_to']) : '';
+
+        $pdo->beginTransaction(); // Start Transaction
+
         try {
             if ($is_update) {
                 $sql = "UPDATE new_connections SET connection_date=?, customer_id_code=?, customer_name=?, mobile_number=?, address=?, connection_type=?, materials_used=?, total_price=?, deposit_amount=?, due_amount=?, order_taker_id=?, money_with_id=? WHERE id=?";
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute([$connection_date, $customer_id_code, $customer_name, $mobile_number, $address, $connection_type, $materials_used, $total_price, $deposit_amount, $due_amount, $order_taker_id, $money_with_id, $id]);
-                $response = ['success' => true, 'message' => 'কানেকশন সফলভাবে আপডেট করা হয়েছে!'];
+                $response_msg = 'কানেকশন সফলভাবে আপডেট করা হয়েছে!';
             } else {
                 $sql = "INSERT INTO new_connections (connection_date, customer_id_code, customer_name, mobile_number, address, connection_type, materials_used, total_price, deposit_amount, due_amount, order_taker_id, money_with_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute([$connection_date, $customer_id_code, $customer_name, $mobile_number, $address, $connection_type, $materials_used, $total_price, $deposit_amount, $due_amount, $order_taker_id, $money_with_id]);
-                $response = ['success' => true, 'message' => 'নতুন কানেকশন সফলভাবে যোগ করা হয়েছে!'];
+                $response_msg = 'নতুন কানেকশন সফলভাবে যোগ করা হয়েছে!';
             }
+
+            // Handle ONU Assignment if provided
+            if (!empty($onu_brand) && !empty($onu_mac)) {
+                // Determine Purpose based on Connection Type
+                $purpose = ($connection_type === 'ফাইবার কনভার্ট') ? 'Convert to ONU' : 'New Connection';
+
+                // If no specific allocator selected, fallback to Order Taker
+                if (empty($onu_assigned_to)) {
+                    $stmt_emp = $pdo->prepare("SELECT full_name FROM employees WHERE id = ?");
+                    $stmt_emp->execute([$order_taker_id]);
+                    $onu_assigned_to = $stmt_emp->fetchColumn();
+                }
+
+                $sql_onu = "INSERT INTO onu_assignments (assignment_date, customer_id, brand_name, mac_address, purpose, assigned_to, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                $stmt_onu = $pdo->prepare($sql_onu);
+                $stmt_onu->execute([$connection_date . ' ' . date('H:i:s'), $customer_id_code, $onu_brand, $onu_mac, $purpose, $onu_assigned_to, $_SESSION['employee_id'] ?? 0]);
+                
+                $response_msg .= ' এবং ONU বরাদ্দ করা হয়েছে।';
+            }
+
+            $pdo->commit();
+            $response = ['success' => true, 'message' => $response_msg];
+
         } catch (PDOException $e) {
-            $response['message'] = ($e->errorInfo[1] == 1062) ? 'এই ID (কোড) টি ஏற்கனவே ব্যবহার করা হয়েছে।' : 'Database error: ' . $e->getMessage();
+            $pdo->rollBack();
+            $response['message'] = ($e->errorInfo[1] == 1062) ? 'এই ID (কোড) টি ইতিমধ্যে ব্যবহৃত।' : 'Database error: ' . $e->getMessage();
         }
         break;
 
     case 'get_connection_details':
         $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
         
+        // Fetch connection details
         $sql = "SELECT nc.*, e_money.full_name as money_with_name 
                 FROM new_connections nc 
                 LEFT JOIN employees e_money ON nc.money_with_id = e_money.id 
@@ -75,7 +110,26 @@ switch ($action) {
         $stmt->execute([$id]);
         $record = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        $response = $record ? ['success' => true, 'data' => $record] : ['success' => false, 'message' => 'কানেকশন পাওয়া যায়নি।'];
+        if ($record) {
+            // Fetch associated ONU assignment details
+            $stmt_onu = $pdo->prepare("SELECT brand_name, mac_address, assigned_to FROM onu_assignments WHERE customer_id = ? ORDER BY id DESC LIMIT 1");
+            $stmt_onu->execute([$record['customer_id_code']]);
+            $onu_data = $stmt_onu->fetch(PDO::FETCH_ASSOC);
+
+            if ($onu_data) {
+                $record['onu_brand'] = $onu_data['brand_name'];
+                $record['onu_mac'] = $onu_data['mac_address'];
+                $record['onu_assigned_to'] = $onu_data['assigned_to'];
+            } else {
+                $record['onu_brand'] = '';
+                $record['onu_mac'] = '';
+                $record['onu_assigned_to'] = '';
+            }
+            
+            $response = ['success' => true, 'data' => $record];
+        } else {
+            $response = ['success' => false, 'message' => 'কানেকশন পাওয়া যায়নি।'];
+        }
         break;
         
     case 'delete_connection':
