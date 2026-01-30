@@ -129,6 +129,13 @@ $assignments = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <td>
                                     <button class="btn btn-sm btn-warning btn-edit" data-id="<?php echo $item['id']; ?>"><i class="bi bi-pencil-square"></i></button>
                                     <button class="btn btn-sm btn-danger btn-delete" data-id="<?php echo $item['id']; ?>"><i class="bi bi-trash"></i></button>
+                                    <button class="btn btn-sm btn-info text-white btn-print"
+                                        data-customer-id="<?php echo htmlspecialchars($item['customer_id']); ?>"
+                                        data-brand-name="<?php echo htmlspecialchars($item['brand_name']); ?>"
+                                        data-mac-address="<?php echo htmlspecialchars($item['mac_address']); ?>"
+                                        data-assignment-date="<?php echo htmlspecialchars($item['assignment_date']); ?>">
+                                        <i class="bi bi-printer"></i>
+                                    </button>
                                 </td>
                             </tr>
                         <?php endforeach; endif; ?>
@@ -243,6 +250,13 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <td>
                                     <button class="btn btn-sm btn-warning btn-edit" data-id="${item.id}"><i class="bi bi-pencil-square"></i></button>
                                     <button class="btn btn-sm btn-danger btn-delete" data-id="${item.id}"><i class="bi bi-trash"></i></button>
+                                    <button class="btn btn-sm btn-info text-white btn-print"
+                                        data-customer-id="${item.customer_id}"
+                                        data-brand-name="${item.brand_name}"
+                                        data-mac-address="${item.mac_address}"
+                                        data-assignment-date="${item.assignment_date}">
+                                        <i class="bi bi-printer"></i>
+                                    </button>
                                 </td>
                             </tr>`;
                             tableBody.innerHTML += row;
@@ -272,6 +286,224 @@ document.addEventListener('DOMContentLoaded', function () {
 
      searchInput.addEventListener('keydown', () => {
         clearTimeout(typingTimer);
+    });
+
+    function formatDateTime(value) {
+        if (!value) return '';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return value;
+        return date.toLocaleDateString('en-GB', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
+    }
+
+    function openPrintWindow(data) {
+        const labelHtml = `<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>ONU Label - প্রিভিউ</title>
+    <style>
+        @page { 
+            size: 40mm 30mm; 
+            margin: 0; 
+        }
+        * { 
+            box-sizing: border-box; 
+            margin: 0;
+            padding: 0;
+        }
+        body { 
+            margin: 20px;
+            padding: 0; 
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .label {
+            width: 40mm;
+            height: 30mm;
+            padding: 2mm;
+            margin: 0 auto;
+            border: 2px solid #333;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .label::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 1px solid #ddd;
+            margin: 1mm;
+            pointer-events: none;
+        }
+        h3 { 
+            margin: 0 0 1mm 0; 
+            font-size: 9pt; 
+            font-weight: 700;
+            text-align: center;
+            color: #000;
+            padding-bottom: 0.5mm;
+            border-bottom: 1.5px solid #333;
+            line-height: 1.1;
+        }
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            padding-top: 0.5mm;
+            gap: 1mm;
+        }
+        .text-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+        }
+        .qr-code {
+            width: 15mm;
+            height: 15mm;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .qr-code img {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .line { 
+            font-size: 6pt; 
+            margin-bottom: 0;
+            color: #000;
+            font-weight: 500;
+            line-height: 1.3;
+            word-wrap: break-word;
+            overflow: hidden;
+        }
+        .line strong {
+            font-weight: 700;
+        }
+        .btn-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .btn {
+            padding: 10px 30px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            margin: 0 5px;
+        }
+        .btn-print {
+            background-color: #0d6efd;
+            color: white;
+        }
+        .btn-print:hover {
+            background-color: #0b5ed7;
+        }
+        .btn-close {
+            background-color: #6c757d;
+            color: white;
+        }
+        .btn-close:hover {
+            background-color: #5c636a;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                background: white;
+                display: block;
+                min-height: auto;
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+                border-radius: 0;
+            }
+            .label {
+                box-shadow: none;
+                border: 2px solid #333;
+            }
+            .btn-container {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="label">
+            <h3>Century Link Network</h3>
+            <div class="content">
+                <div class="text-info">
+                    <div class="line"><strong>ID: ${data.customerId}</strong></div>
+                    
+                    <div class="line"><strong>${data.brandName}</strong></div>
+                    <div class="line"><strong>${data.macAddress}</strong></div>
+                    <div class="line"><strong>${data.dateTime}</strong></div>
+                    <div class="line"><strong>01777858289</strong></div>
+                    
+                </div>
+                <div class="qr-code">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent('ID:' + data.customerId + '|MAC:' + data.macAddress + '|Date:' + data.dateTime)}" alt="QR Code" />
+                </div>
+            </div>
+        </div>
+        <div class="btn-container">
+            <button class="btn btn-print" onclick="window.print()">
+                🖨️ প্রিন্ট করুন
+            </button>
+            <button class="btn btn-close" onclick="window.close()">
+                ❌ বন্ধ করুন
+            </button>
+        </div>
+    </div>
+</body>
+</html>`;
+
+        const printWindow = window.open('', '_blank', 'width=500,height=600');
+        if (!printWindow) return;
+        printWindow.document.open();
+        printWindow.document.write(labelHtml);
+        printWindow.document.close();
+    }
+
+    tableBody.addEventListener('click', (event) => {
+        const button = event.target.closest('.btn-print');
+        if (!button) return;
+
+        const data = {
+            customerId: button.dataset.customerId || '',
+            brandName: button.dataset.brandName || '',
+            macAddress: button.dataset.macAddress || '',
+            dateTime: formatDateTime(button.dataset.assignmentDate || '')
+        };
+
+        openPrintWindow(data);
     });
 });
 </script>
