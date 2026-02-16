@@ -334,27 +334,15 @@ document.addEventListener('DOMContentLoaded', function () {
         .label {
             width: 40mm;
             height: 30mm;
-            padding: 2mm;
+            padding: 1.5mm;
             margin: 0 auto;
-            border: 2px solid #333;
             background: white;
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
             position: relative;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             overflow: hidden;
-        }
-        .label::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            border: 1px solid #ddd;
-            margin: 1mm;
-            pointer-events: none;
         }
         h3 { 
             margin: 0 0 1mm 0; 
@@ -381,8 +369,8 @@ document.addEventListener('DOMContentLoaded', function () {
             justify-content: space-around;
         }
         .qr-code {
-            width: 15mm;
-            height: 15mm;
+            width: 16mm;
+            height: 16mm;
             flex-shrink: 0;
             display: flex;
             align-items: center;
@@ -395,6 +383,15 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         .line { 
             font-size: 6pt; 
+            margin-bottom: 0;
+            color: #000;
+            font-weight: 500;
+            line-height: 1.3;
+            word-wrap: break-word;
+            overflow: hidden;
+        }        
+        .line2 { 
+            font-size: 8pt; 
             margin-bottom: 0;
             color: #000;
             font-weight: 500;
@@ -446,7 +443,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             .label {
                 box-shadow: none;
-                border: 2px solid #333;
             }
             .btn-container {
                 display: none;
@@ -457,19 +453,17 @@ document.addEventListener('DOMContentLoaded', function () {
 <body>
     <div class="container">
         <div class="label">
-            <h3>Century Link Network</h3>
+            <h3 class="line2">Century Link Network</h3>
             <div class="content">
                 <div class="text-info">
-                    <div class="line"><strong>ID: ${data.customerId}</strong></div>
-                    
+                    <div class="line2"><strong>ID: ${data.customerId}</strong></div>                
                     <div class="line"><strong>${data.brandName}</strong></div>
                     <div class="line"><strong>${data.macAddress}</strong></div>
                     <div class="line"><strong>${data.dateTime}</strong></div>
-                    <div class="line"><strong>01777858289</strong></div>
                     
                 </div>
                 <div class="qr-code">
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent('ID:' + data.customerId + '|MAC:' + data.macAddress + '|Date:' + data.dateTime)}" alt="QR Code" />
+                    <img src="assets/qr/bkash.svg" alt="bKash" />
                 </div>
             </div>
         </div>
