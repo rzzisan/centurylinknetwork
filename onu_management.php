@@ -307,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function () {
     <title>ONU Label - প্রিভিউ</title>
     <style>
         @page { 
-            size: 40mm 30mm; 
+            size: 50mm 75mm; 
             margin: 0; 
         }
         * { 
@@ -332,9 +332,9 @@ document.addEventListener('DOMContentLoaded', function () {
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         .label {
-            width: 40mm;
-            height: 30mm;
-            padding: 1.5mm;
+            width: 50mm;
+            height: 75mm;
+            padding: 2mm;
             margin: 0 auto;
             background: white;
             display: flex;
@@ -345,36 +345,38 @@ document.addEventListener('DOMContentLoaded', function () {
             overflow: hidden;
         }
         h3 { 
-            margin: 0 0 1mm 0; 
-            font-size: 9pt; 
+            margin: 0 0 2mm 0; 
+            font-size: 10pt; 
             font-weight: 700;
             text-align: center;
             color: #000;
-            padding-bottom: 0.5mm;
-            border-bottom: 1.5px solid #333;
-            line-height: 1.1;
+            padding-bottom: 1mm;
+            border-bottom: 2px solid #333;
+            line-height: 1.2;
         }
         .content {
             flex: 1;
             display: flex;
-            flex-direction: row;
+            flex-direction: column;
             justify-content: space-between;
-            padding-top: 0.5mm;
-            gap: 1mm;
+            padding-top: 1mm;
+            gap: 2mm;
         }
         .text-info {
             flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: space-around;
+            gap: 1mm;
         }
         .qr-code {
-            width: 16mm;
-            height: 16mm;
+            width: 20mm;
+            height: 20mm;
             flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: center;
+            margin: 1mm auto;
         }
         .qr-code img {
             width: 100%;
@@ -382,13 +384,36 @@ document.addEventListener('DOMContentLoaded', function () {
             display: block;
         }
         .line { 
-            font-size: 6pt; 
+            font-size: 8pt; 
             margin-bottom: 0;
             color: #000;
-            font-weight: 500;
-            line-height: 1.3;
+            font-weight: 600;
+            line-height: 1;
             word-wrap: break-word;
             overflow: hidden;
+        }
+        .qr-title {
+            font-size: 9pt;
+            text-align: center;
+            color: #000;
+            font-weight: 700;
+            margin-top: 0.5mm;
+            margin-bottom: 0;
+        }
+        .customer-id {
+            font-size: 11pt;
+            font-weight: 700;
+            margin-bottom: 0.5mm;
+            color: #000;
+        }
+        .helpline {
+            font-size: 10pt;
+            color: #000;
+            font-weight: 700;
+            padding: 0.5mm 0;
+            text-align: center;
+            line-height: 1.1;
+            flex-shrink: 0;
         }        
         .line2 { 
             font-size: 8pt; 
@@ -453,17 +478,21 @@ document.addEventListener('DOMContentLoaded', function () {
 <body>
     <div class="container">
         <div class="label">
-            <h3 class="line2">Century Link Network</h3>
+            <h3>Century Link Network</h3>
+            <div class="helpline">
+                <div>Helpline: 01777858289 | 09613009900</div>
+            </div>
             <div class="content">
-                <div class="text-info">
-                    <div class="line2"><strong>ID: ${data.customerId}</strong></div>                
-                    <div class="line"><strong>${data.brandName}</strong></div>
-                    <div class="line"><strong>${data.macAddress}</strong></div>
-                    <div class="line"><strong>${data.dateTime}</strong></div>
-                    
-                </div>
+            <div class="qr-title">Bkash Payment</div>
                 <div class="qr-code">
                     <img src="assets/qr/bkash.svg" alt="bKash" />
+                </div>
+                
+                <div class="text-info">
+                    <div class="customer-id">Customer ID: ${data.customerId}</div>                
+                    <div class="line">${data.brandName}</div>
+                    <div class="line">${data.macAddress}</div>
+                    <div class="line">${data.dateTime}</div>
                 </div>
             </div>
         </div>
