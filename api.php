@@ -379,6 +379,9 @@ switch ($action) {
         $stmt->execute([$id]);
         $record = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($record) {
+            $stmt_nc = $pdo->prepare("SELECT id, connection_date, customer_id_code, customer_name, mobile_number, address, connection_type, materials_used, total_price, deposit_amount, order_taker_id, money_with_id FROM new_connections WHERE customer_id_code = ? ORDER BY id DESC LIMIT 1");
+            $stmt_nc->execute([$record['customer_id']]);
+            $record['new_connection'] = $stmt_nc->fetch(PDO::FETCH_ASSOC) ?: null;
             $response = ['success' => true, 'data' => $record];
         } else {
             $response['message'] = 'Record not found.';
@@ -396,19 +399,107 @@ switch ($action) {
         $assignedTo = isset($_POST['assigned_to']) ? implode(', ', $_POST['assigned_to']) : '';
         $created_by = $_SESSION['employee_id'];
 
+        $nc_connection_date = trim($_POST['nc_connection_date'] ?? '');
+        $nc_customer_id_code = trim($_POST['nc_customer_id_code'] ?? '');
+        $nc_customer_name = trim($_POST['nc_customer_name'] ?? '');
+        $nc_mobile_number = trim($_POST['nc_mobile_number'] ?? '');
+        $nc_address = trim($_POST['nc_address'] ?? '');
+        $nc_connection_type = trim($_POST['nc_connection_type'] ?? 'নতুন লাইন');
+        $nc_materials = isset($_POST['nc_materials']) ? $_POST['nc_materials'] : [];
+        $nc_materials_used = !empty($nc_materials) ? implode(',', $nc_materials) : 'অনু';
+        $nc_total_price = filter_input(INPUT_POST, 'nc_total_price', FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE);
+        $nc_deposit_amount = filter_input(INPUT_POST, 'nc_deposit_amount', FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE);
+        $nc_order_taker_id = filter_input(INPUT_POST, 'nc_order_taker_id', FILTER_VALIDATE_INT);
+        $nc_money_with_id = filter_input(INPUT_POST, 'nc_money_with_id', FILTER_VALIDATE_INT);
+
         try {
+            $pdo->beginTransaction();
+
             if (empty($id)) {
                 $sql = "INSERT INTO onu_assignments (assignment_date, customer_id, brand_name, mac_address, purpose, assigned_to, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)";
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute([$date, $customerId, $brand, $mac, $purpose, $assignedTo, $created_by]);
-                $response = ['success' => true, 'message' => 'নতুন তথ্য যোগ করা হয়েছে!'];
+                $response_message = 'নতুন তথ্য যোগ করা হয়েছে!';
             } else {
                 $sql = "UPDATE onu_assignments SET assignment_date=?, customer_id=?, brand_name=?, mac_address=?, purpose=?, assigned_to=? WHERE id=?";
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute([$date, $customerId, $brand, $mac, $purpose, $assignedTo, $id]);
-                $response = ['success' => true, 'message' => 'তথ্য আপডেট করা হয়েছে!'];
+                $response_message = 'তথ্য আপডেট করা হয়েছে!';
             }
+
+            if ($purpose === 'New Connection') {
+                $final_connection_date = $nc_connection_date !== '' ? $nc_connection_date : substr((string)$date, 0, 10);
+                $final_customer_id_code = $nc_customer_id_code !== '' ? $nc_customer_id_code : (string)$customerId;
+                $final_total_price = $nc_total_price ?? 0;
+                $final_deposit_amount = $nc_deposit_amount ?? 0;
+                $final_due_amount = $final_total_price - $final_deposit_amount;
+
+                if (
+                    $final_connection_date === '' ||
+                    $final_customer_id_code === '' ||
+                    $nc_customer_name === '' ||
+                    $nc_mobile_number === '' ||
+                    $nc_address === '' ||
+                    !$nc_order_taker_id ||
+                    !$nc_money_with_id ||
+                    $nc_total_price === null ||
+                    $nc_deposit_amount === null
+                ) {
+                    throw new Exception('কারণ New Connection হলে New Connection সেকশনের সব আবশ্যক তথ্য পূরণ করুন।');
+                }
+
+                $stmt_find = $pdo->prepare("SELECT id FROM new_connections WHERE customer_id_code = ? ORDER BY id DESC LIMIT 1");
+                $stmt_find->execute([$final_customer_id_code]);
+                $existing_connection_id = $stmt_find->fetchColumn();
+
+                if ($existing_connection_id) {
+                    $stmt_nc = $pdo->prepare("UPDATE new_connections SET connection_date=?, customer_name=?, mobile_number=?, address=?, connection_type=?, materials_used=?, total_price=?, deposit_amount=?, due_amount=?, order_taker_id=?, money_with_id=? WHERE id=?");
+                    $stmt_nc->execute([
+                        $final_connection_date,
+                        $nc_customer_name,
+                        $nc_mobile_number,
+                        $nc_address,
+                        $nc_connection_type,
+                        $nc_materials_used,
+                        $final_total_price,
+                        $final_deposit_amount,
+                        $final_due_amount,
+                        $nc_order_taker_id,
+                        $nc_money_with_id,
+                        $existing_connection_id
+                    ]);
+                    $response_message .= ' সংশ্লিষ্ট New Connection আপডেট করা হয়েছে।';
+                } else {
+                    $stmt_nc = $pdo->prepare("INSERT INTO new_connections (connection_date, customer_id_code, customer_name, mobile_number, address, connection_type, materials_used, total_price, deposit_amount, due_amount, order_taker_id, money_with_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt_nc->execute([
+                        $final_connection_date,
+                        $final_customer_id_code,
+                        $nc_customer_name,
+                        $nc_mobile_number,
+                        $nc_address,
+                        $nc_connection_type,
+                        $nc_materials_used,
+                        $final_total_price,
+                        $final_deposit_amount,
+                        $final_due_amount,
+                        $nc_order_taker_id,
+                        $nc_money_with_id
+                    ]);
+                    $response_message .= ' এবং New Connection যোগ করা হয়েছে।';
+                }
+            }
+
+            $pdo->commit();
+            $response = ['success' => true, 'message' => $response_message];
         } catch (PDOException $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            $response['message'] = 'Database error: ' . $e->getMessage();
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             $response['message'] = 'Database error: ' . $e->getMessage();
         }
         break;
@@ -515,9 +606,10 @@ switch ($action) {
             exit;
         }
 
-        $sql = "SELECT oa.*, e_creator.full_name as creator_name 
+        $sql = "SELECT oa.*, e_creator.full_name as creator_name, nc.customer_name, nc.mobile_number, nc.address 
                 FROM onu_assignments oa 
                 LEFT JOIN employees e_creator ON oa.created_by = e_creator.id 
+            LEFT JOIN new_connections nc ON nc.id = (SELECT id FROM new_connections WHERE customer_id_code = oa.customer_id ORDER BY id DESC LIMIT 1)
                 WHERE oa.customer_id LIKE ? OR oa.mac_address LIKE ?
                 ORDER BY oa.assignment_date DESC";
         

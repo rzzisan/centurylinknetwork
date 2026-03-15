@@ -22,7 +22,7 @@ $filter_brand = $_GET['brand'] ?? '';
 $filter_created_by = $_GET['created_by'] ?? '';
 $filter_purpose = $_GET['purpose'] ?? '';
 
-$sql_base = "FROM onu_assignments oa LEFT JOIN employees e_creator ON oa.created_by = e_creator.id WHERE 1=1";
+$sql_base = "FROM onu_assignments oa LEFT JOIN employees e_creator ON oa.created_by = e_creator.id LEFT JOIN new_connections nc ON nc.id = (SELECT id FROM new_connections WHERE customer_id_code = oa.customer_id ORDER BY id DESC LIMIT 1) WHERE 1=1";
 $params = [];
 
 // Build query and parameters
@@ -41,7 +41,7 @@ $total_records = $total_records_stmt->fetchColumn();
 $total_pages = !empty($items_per_page) ? ceil($total_records / $items_per_page) : 1;
 
 // Get records for the current page
-$sql = "SELECT oa.*, e_creator.full_name as creator_name " . $sql_base . " ORDER BY oa.assignment_date DESC LIMIT :limit OFFSET :offset";
+$sql = "SELECT oa.*, e_creator.full_name as creator_name, nc.customer_name, nc.mobile_number, nc.address " . $sql_base . " ORDER BY oa.assignment_date DESC LIMIT :limit OFFSET :offset";
 $stmt = $pdo->prepare($sql);
 
 foreach ($params as $key => $value) {
@@ -109,18 +109,28 @@ $assignments = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <div class="table-responsive">
                 <table class="table table-striped table-hover">
                     <thead class="table-dark">
-                        <tr><th>নং</th><th>তারিখ ও সময়</th><th>কাস্টমার আইডি</th><th>ব্র্যান্ড</th><th>MAC Address</th><th>কারণ</th><th>বরাদ্দ গ্রহীতা</th><th>এন্ট্রি করেছেন</th>
+                        <tr><th>নং</th><th>তারিখ ও সময়</th><th>কাস্টমার আইডি</th><th>গ্রাহকের তথ্য</th><th>ব্র্যান্ড</th><th>MAC Address</th><th>কারণ</th><th>বরাদ্দ গ্রহীতা</th><th>এন্ট্রি করেছেন</th>
                         <th>অ্যাকশন</th>
                         </tr>
                     </thead>
                     <tbody id="onuTableBody">
                         <?php if (empty($assignments)): ?>
-                            <tr><td colspan="9" class="text-center">কোনো তথ্য পাওয়া যায়নি।</td></tr>
+                            <tr><td colspan="10" class="text-center">কোনো তথ্য পাওয়া যায়নি।</td></tr>
                         <?php else: foreach ($assignments as $index => $item): ?>
                             <tr data-id="<?php echo $item['id']; ?>">
                                 <td><?php echo $offset + $index + 1; ?></td>
                                 <td><?php echo htmlspecialchars(date('d-m-Y, h:i A', strtotime($item['assignment_date']))); ?></td>
                                 <td><?php echo htmlspecialchars($item['customer_id']); ?></td>
+                                <td>
+                                    <strong><?php echo htmlspecialchars($item['customer_name'] ?? ''); ?></strong><br>
+                                    <small>
+                                        <?php echo htmlspecialchars($item['mobile_number'] ?? ''); ?>
+                                        <?php if (!empty($item['mobile_number']) && !empty($item['address'])): ?>
+                                            <span> | </span>
+                                        <?php endif; ?>
+                                        <?php echo htmlspecialchars($item['address'] ?? ''); ?>
+                                    </small>
+                                </td>
                                 <td><?php echo htmlspecialchars($item['brand_name']); ?></td>
                                 <td><?php echo htmlspecialchars($item['mac_address']); ?></td>
                                 <td><?php echo htmlspecialchars($item['purpose']); ?></td>
@@ -186,6 +196,32 @@ $assignments = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <div class="col-md-6"><label for="brand_name" class="form-label">ব্র্যান্ড (স্টক থেকে)</label><select class="form-select" id="brand_name" name="brand_name" required><option value="">ব্র্যান্ড নির্বাচন করুন</option></select></div>
                         <div class="col-md-6"><label for="mac_address" class="form-label">ONU MAC Address</label><input type="text" class="form-control" id="mac_address" name="mac_address" required></div>
                         <div class="col-md-12"><label for="purpose" class="form-label">কারণ</label><select class="form-select" id="purpose" name="purpose" required><option value="">নির্বাচন করুন</option><option value="New Connection">New Connection</option><option value="Warranty">Warranty</option><option value="Convert to ONU">Convert to ONU</option><option value="বিক্রয় করা হয়েছে">বিক্রয় করা হয়েছে</option><option value="পয়েন্টে লাগানো হয়েছে">পয়েন্টে লাগানো হয়েছে</option></select></div>
+
+                        <div class="col-md-12 border rounded p-3 bg-light" id="new-connection-section" style="display:none;">
+                            <h6 class="mb-3">New Connection তথ্য (কারণ: New Connection হলে আবশ্যক)</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4"><label for="nc_connection_date" class="form-label">কানেকশন তারিখ</label><input type="date" class="form-control" id="nc_connection_date" name="nc_connection_date"></div>
+                                <div class="col-md-4"><label for="nc_customer_id_code" class="form-label">ID (কোড)</label><input type="text" class="form-control" id="nc_customer_id_code" name="nc_customer_id_code" pattern="\d{4}" title="শুধুমাত্র ৪ সংখ্যার নম্বর দিন"></div>
+                                <div class="col-md-4"><label for="nc_connection_type" class="form-label">ধরণ</label><select class="form-select" id="nc_connection_type" name="nc_connection_type"><option value="নতুন লাইন">নতুন লাইন</option><option value="ফাইবার কনভার্ট">ফাইবার কনভার্ট</option></select></div>
+                                <div class="col-md-6"><label for="nc_customer_name" class="form-label">নাম</label><input type="text" class="form-control" id="nc_customer_name" name="nc_customer_name"></div>
+                                <div class="col-md-6"><label for="nc_mobile_number" class="form-label">মোবাইল নাম্বার</label><input type="text" class="form-control" id="nc_mobile_number" name="nc_mobile_number"></div>
+                                <div class="col-md-12"><label for="nc_address" class="form-label">ঠিকানা</label><input type="text" class="form-control" id="nc_address" name="nc_address"></div>
+                                <div class="col-md-12">
+                                    <label class="form-label">মালামাল</label>
+                                    <div>
+                                        <input type="checkbox" class="form-check-input" name="nc_materials[]" value="অনু" id="nc_mat_onu"> <label for="nc_mat_onu">অনু</label> &nbsp;
+                                        <input type="checkbox" class="form-check-input" name="nc_materials[]" value="ফাইবার" id="nc_mat_fiber"> <label for="nc_mat_fiber">ফাইবার</label> &nbsp;
+                                        <input type="checkbox" class="form-check-input" name="nc_materials[]" value="অনু-রাউটার" id="nc_mat_router"> <label for="nc_mat_router">অনু-রাউটার</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4"><label for="nc_total_price" class="form-label">মোট টাকা</label><input type="number" class="form-control" id="nc_total_price" name="nc_total_price" min="0" step="0.01"></div>
+                                <div class="col-md-4"><label for="nc_deposit_amount" class="form-label">জমা</label><input type="number" class="form-control" id="nc_deposit_amount" name="nc_deposit_amount" min="0" step="0.01"></div>
+                                <div class="col-md-4"><label for="nc_due_display" class="form-label">বাকি</label><input type="text" class="form-control" id="nc_due_display" disabled></div>
+                                <div class="col-md-6"><label for="nc_order_taker_id" class="form-label">অর্ডার গ্রহীতা</label><select class="form-select" id="nc_order_taker_id" name="nc_order_taker_id"><option value="">নির্বাচন করুন</option><?php foreach ($employees_list as $emp): ?><option value="<?php echo (int)$emp['id']; ?>"><?php echo htmlspecialchars($emp['full_name']); ?></option><?php endforeach; ?></select></div>
+                                <div class="col-md-6"><label for="nc_money_with_id" class="form-label">টাকা যার কাছে</label><select class="form-select" id="nc_money_with_id" name="nc_money_with_id"><option value="">নির্বাচন করুন</option><?php foreach ($employees_list as $emp): ?><option value="<?php echo (int)$emp['id']; ?>"><?php echo htmlspecialchars($emp['full_name']); ?></option><?php endforeach; ?></select></div>
+                            </div>
+                        </div>
+
                         <div class="col-md-12">
                             <label class="form-label">বরাদ্দ গ্রহীতা</label>
                             <div class="border p-2 rounded" style="max-height: 150px; overflow-y: auto;">
@@ -227,7 +263,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (query.length > 2) {
             paginationContainer.style.display = 'none'; // Hide pagination during search
-            tableBody.innerHTML = '<tr><td colspan="9" class="text-center">সার্চ করা হচ্ছে...</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="10" class="text-center">সার্চ করা হচ্ছে...</td></tr>';
 
             fetch(`api.php?action=search_onu_assignments&query=${encodeURIComponent(query)}`)
                 .then(response => response.json())
@@ -242,6 +278,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <td>${index + 1}</td>
                                 <td>${formattedDate}</td>
                                 <td>${item.customer_id}</td>
+                                <td><strong>${item.customer_name || ''}</strong><br><small>${item.mobile_number || ''}${item.mobile_number && item.address ? ' | ' : ''}${item.address || ''}</small></td>
                                 <td>${item.brand_name}</td>
                                 <td>${item.mac_address}</td>
                                 <td>${item.purpose}</td>
@@ -262,12 +299,12 @@ document.addEventListener('DOMContentLoaded', function () {
                             tableBody.innerHTML += row;
                         });
                     } else {
-                        tableBody.innerHTML = '<tr><td colspan="9" class="text-center">কোনো ফলাফল পাওয়া যায়নি।</td></tr>';
+                        tableBody.innerHTML = '<tr><td colspan="10" class="text-center">কোনো ফলাফল পাওয়া যায়নি।</td></tr>';
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    tableBody.innerHTML = '<tr><td colspan="9" class="text-center">সার্চ করতে সমস্যা হয়েছে।</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="10" class="text-center">সার্চ করতে সমস্যা হয়েছে।</td></tr>';
                 });
 
         } else if (query.length === 0) {

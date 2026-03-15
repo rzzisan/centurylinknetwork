@@ -16,7 +16,46 @@ document.addEventListener('DOMContentLoaded', function() {
     const customerIdField = document.getElementById('customer_id');
     const dateField = document.getElementById('assignment_date');
     const brandSelect = document.getElementById('brand_name');
+    const purposeField = document.getElementById('purpose');
+    const newConnectionSection = document.getElementById('new-connection-section');
     const tableBody = document.querySelector('table tbody');
+    const ncDateField = document.getElementById('nc_connection_date');
+    const ncCustomerIdField = document.getElementById('nc_customer_id_code');
+    const ncTotalField = document.getElementById('nc_total_price');
+    const ncDepositField = document.getElementById('nc_deposit_amount');
+    const ncDueDisplay = document.getElementById('nc_due_display');
+
+    function setNewConnectionRequired(isRequired) {
+        const requiredIds = [
+            'nc_connection_date',
+            'nc_customer_id_code',
+            'nc_customer_name',
+            'nc_mobile_number',
+            'nc_address',
+            'nc_total_price',
+            'nc_deposit_amount',
+            'nc_order_taker_id',
+            'nc_money_with_id'
+        ];
+
+        requiredIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.required = isRequired;
+        });
+    }
+
+    function calculateNewConnectionDue() {
+        const total = parseFloat(ncTotalField.value) || 0;
+        const deposit = parseFloat(ncDepositField.value) || 0;
+        ncDueDisplay.value = (total - deposit).toFixed(2);
+    }
+
+    function toggleNewConnectionSection() {
+        const isNewConnectionPurpose = purposeField.value === 'New Connection';
+        newConnectionSection.style.display = isNewConnectionPurpose ? 'block' : 'none';
+        setNewConnectionRequired(isNewConnectionPurpose);
+    }
 
     const api_url = 'api.php';
 
@@ -55,6 +94,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const now = new Date();
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
         dateField.value = now.toISOString().slice(0, 16);
+        ncDateField.value = now.toISOString().slice(0, 10);
+        ncCustomerIdField.value = '';
+        ncDueDisplay.value = '';
+        toggleNewConnectionSection();
         formModal.show();
     }
 
@@ -73,6 +116,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
     });
+
+    purposeField.addEventListener('change', toggleNewConnectionSection);
+
+    customerIdField.addEventListener('input', function() {
+        ncCustomerIdField.value = this.value;
+    });
+
+    dateField.addEventListener('change', function() {
+        if (!this.value) return;
+        ncDateField.value = this.value.slice(0, 10);
+    });
+
+    ncTotalField.addEventListener('input', calculateNewConnectionDue);
+    ncDepositField.addEventListener('input', calculateNewConnectionDue);
 
     tableBody.addEventListener('click', function(e) {
         const target = e.target.closest('.btn-edit, .btn-delete');
@@ -98,6 +155,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         customerIdField.value = record.customer_id;
                         document.getElementById('mac_address').value = record.mac_address;
                         document.getElementById('purpose').value = record.purpose;
+                        ncCustomerIdField.value = record.customer_id;
+                        ncDateField.value = record.assignment_date ? record.assignment_date.slice(0, 10) : '';
 
                         // Reset checkboxes
                         document.querySelectorAll('input[name="assigned_to[]"]').forEach(checkbox => checkbox.checked = false);
@@ -109,6 +168,30 @@ document.addEventListener('DOMContentLoaded', function() {
                                 checkbox.checked = true;
                             }
                         });
+
+                        document.querySelectorAll('input[name="nc_materials[]"]').forEach(checkbox => checkbox.checked = false);
+                        if (record.new_connection) {
+                            document.getElementById('nc_connection_date').value = record.new_connection.connection_date || '';
+                            document.getElementById('nc_customer_id_code').value = record.new_connection.customer_id_code || record.customer_id || '';
+                            document.getElementById('nc_customer_name').value = record.new_connection.customer_name || '';
+                            document.getElementById('nc_mobile_number').value = record.new_connection.mobile_number || '';
+                            document.getElementById('nc_address').value = record.new_connection.address || '';
+                            document.getElementById('nc_connection_type').value = record.new_connection.connection_type || 'নতুন লাইন';
+                            document.getElementById('nc_total_price').value = record.new_connection.total_price || '';
+                            document.getElementById('nc_deposit_amount').value = record.new_connection.deposit_amount || '';
+                            document.getElementById('nc_order_taker_id').value = record.new_connection.order_taker_id || '';
+                            document.getElementById('nc_money_with_id').value = record.new_connection.money_with_id || '';
+
+                            if (record.new_connection.materials_used) {
+                                record.new_connection.materials_used.split(',').map(v => v.trim()).forEach(val => {
+                                    const cb = document.querySelector(`input[name="nc_materials[]"][value="${val}"]`);
+                                    if (cb) cb.checked = true;
+                                });
+                            }
+                        }
+
+                        toggleNewConnectionSection();
+                        calculateNewConnectionDue();
                         modalTitle.textContent = 'তথ্য এডিট করুন';
                         formModal.show();
                     }
@@ -172,4 +255,6 @@ document.addEventListener('DOMContentLoaded', function() {
      customerIdField.addEventListener('focus', function() {
         this.classList.remove('is-invalid');
     });
+
+    toggleNewConnectionSection();
 });
